@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "anthropic-tools"
+version = "1.0.0"
+description = "Simplifies the usage of Anthropic Claude's tool use by generating the schemas and parsing the responses for you."
+authors = ["rizerphe <44440399+rizerphe@users.noreply.github.com>"]
+readme = "README.md"
+homepage = "https://github.com/rizerphe/anthropic-tools"
+documentation = "https://anthropic-tools.readthedocs.io/"
+keywords = ["nlp", "anthropic", "claude", "claude3", "claude-api", "wrapper", "functions", "typing", "docstring", "docstrings", "decorators", "signatures", "parsing"]
+license = "MIT"
+packages = [{include = "anthropic_tools"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+docstring-parser = "^0.15"
+typing-extensions = "^4.6.3"
+anthropic = "^0.25.6"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
