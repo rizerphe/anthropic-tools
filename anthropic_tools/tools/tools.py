@@ -219,8 +219,8 @@ class ToolResult:
                         tool_use_id=self.use_id,
                     ),
                 )
-            if len([block for block in result if block.type == "text"]):
-                # Replace the first text block with all concatenated text blocks
+            if len([block for block in result if block.type == "tool_result"]) > 1:
+                # Replace the first result block with all concatenated results:
                 first_text_block = next(
                     block for block in blocks if block["type"] == "tool_result"
                 )
@@ -233,7 +233,7 @@ class ToolResult:
                     [],
                 )
                 first_text_block["is_error"] = any(
-                    block.is_error for block in result if block.type == "text"
+                    block.is_error for block in result if block.type == "tool_result"
                 )
                 # Delete all but the first one now:
                 new_blocks = []
