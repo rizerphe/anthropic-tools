@@ -200,7 +200,7 @@ class ToolResult:
         """
         result = self.raw_result.as_content
         if self._is_tool_output(result):
-            return [
+            blocks = [
                 ToolResultBlockParam(
                     type="tool_result",
                     tool_use_id=self.use_id,
@@ -211,6 +211,42 @@ class ToolResult:
                 else ImageBlockParam(type="image", source=block.source)
                 for block in result
             ]
+            if not any(block.type == "text" for block in result):
+                blocks.insert(
+                    0,
+                    ToolResultBlockParam(
+                        type="tool_result",
+                        tool_use_id=self.use_id,
+                    ),
+                )
+            if len([block for block in result if block.type == "text"]):
+                # Replace the first text block with all concatenated text blocks
+                first_text_block = next(
+                    block for block in blocks if block["type"] == "tool_result"
+                )
+                first_text_block["content"] = sum(
+                    [
+                        list(block.get("content", []))
+                        for block in blocks
+                        if block["type"] == "tool_result"
+                    ],
+                    [],
+                )
+                first_text_block["is_error"] = any(
+                    block.is_error for block in result if block.type == "text"
+                )
+                # Delete all but the first one now:
+                new_blocks = []
+                first_done = False
+                for block in blocks:
+                    if block["type"] == "tool_result":
+                        if first_done:
+                            continue
+                        else:
+                            first_done = True
+                    new_blocks.append(first_text_block)
+                return new_blocks
+            return blocks
         return result
 
     @property
