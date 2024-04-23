@@ -131,12 +131,33 @@ class Conversation:
         Returns:
             ToolsBetaMessage: The generated raw message.
         """
+        self._merge_same_role_messages()
         return self.client.beta.tools.messages.create(
             model=self.model,
             max_tokens=max_tokens,
             tools=self.tools_schema,
             messages=self.messages,
         )
+
+    def _merge_same_role_messages(self) -> None:
+        """Merge messages with the same role if they are adjacent."""
+        if not self.messages:
+            return
+        merged_messages = [self.messages[0]]
+        for message in self.messages[1:]:
+            if message["role"] == merged_messages[-1]["role"]:
+                if isinstance(merged_messages[-1]["content"], str):
+                    merged_messages[-1]["content"] = [
+                        TextBlockParam(type="text", text=merged_messages[-1]["content"])
+                    ]
+                if isinstance(message["content"], str):
+                    message["content"] = [
+                        TextBlockParam(type="text", text=message["content"])
+                    ]
+                merged_messages[-1]["content"].extend(message["content"])
+            else:
+                merged_messages.append(message)
+        self.messages = merged_messages
 
     def add_tool_result(self, tool_result: ToolResult) -> bool:
         """Add a tool result to the conversation.
