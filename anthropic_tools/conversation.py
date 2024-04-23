@@ -243,13 +243,7 @@ class Conversation:
         while True:
             message = self.generate_message(retries=retries, max_tokens=max_tokens)
             generated.append(message)
-            if self._contains_call(message):
-                # Force tools to get used, so that the next message
-                # contains something other than tool results
-                generated.append(
-                    self.generate_message(retries=retries, max_tokens=max_tokens)
-                )
-            else:
+            if not self._contains_call(message):
                 return generated
 
     @overload

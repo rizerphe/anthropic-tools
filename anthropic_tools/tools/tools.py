@@ -211,7 +211,7 @@ class ToolResult:
                 else ImageBlockParam(type="image", source=block.source)
                 for block in result
             ]
-            if not any(block.type == "text" for block in result):
+            if not any(block["type"] == "tool_result" for block in blocks):
                 blocks.insert(
                     0,
                     ToolResultBlockParam(
@@ -219,7 +219,7 @@ class ToolResult:
                         tool_use_id=self.use_id,
                     ),
                 )
-            if len([block for block in result if block.type == "tool_result"]) > 1:
+            if len([block for block in blocks if block["type"] == "tool_result"]) > 1:
                 # Replace the first result block with all concatenated results:
                 first_text_block = next(
                     block for block in blocks if block["type"] == "tool_result"
@@ -233,7 +233,9 @@ class ToolResult:
                     [],
                 )
                 first_text_block["is_error"] = any(
-                    block.is_error for block in result if block.type == "tool_result"
+                    block["is_error"]
+                    for block in blocks
+                    if block["type"] == "tool_result"
                 )
                 # Delete all but the first one now:
                 new_blocks = []
