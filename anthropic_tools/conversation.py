@@ -1,15 +1,13 @@
 """A conversation with Anthropic Claude."""
 from __future__ import annotations
 import time
-from typing import Any, Callable, Iterable, TYPE_CHECKING, overload
+from typing import Any, Callable, TYPE_CHECKING, overload
 
 from anthropic import Anthropic, RateLimitError
-from anthropic.types import ImageBlockParam, TextBlockParam
+from anthropic.types import TextBlockParam
 from anthropic.types.beta.tools import (
     ToolParam,
     ToolResultBlockParam,
-    ToolUseBlockParam,
-    ToolsBetaContentBlock,
     ToolsBetaMessage,
     ToolsBetaMessageParam,
 )
@@ -140,7 +138,7 @@ class Conversation:
             messages=self.messages,
         )
 
-    def _add_tool_result(self, tool_result: ToolResult) -> bool:
+    def add_tool_result(self, tool_result: ToolResult) -> bool:
         """Add a tool result to the conversation.
 
         Args:
@@ -149,8 +147,6 @@ class Conversation:
         Returns:
             bool: True if the tool result was added, False otherwise.
         """
-        if tool_result.content is None:
-            return False
         if tool_result.interpret_return_as_response:
             self.add_message(
                 {
@@ -175,17 +171,6 @@ class Conversation:
                 )
             )
         return True
-
-    def add_tool_result(self, tool_result: ToolResult) -> bool:
-        """Add a tool result to the conversation.
-
-        Args:
-            tool_result (ToolResult): The tool result to add.
-
-        Returns:
-            bool: True if the tool result was added, False otherwise.
-        """
-        return self._add_tool_result(tool_result)
 
     def run_tool_if_needed(self) -> bool:
         """Run a tool if needed.

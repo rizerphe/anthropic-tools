@@ -2,7 +2,15 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import json
-from typing import Any, Iterable, Literal, Protocol, TYPE_CHECKING, runtime_checkable
+from typing import (
+    Any,
+    Iterable,
+    Literal,
+    Protocol,
+    TYPE_CHECKING,
+    TypeGuard,
+    runtime_checkable,
+)
 
 from anthropic.types import ImageBlockParam, TextBlockParam
 from anthropic.types.beta.tools import (
@@ -10,6 +18,7 @@ from anthropic.types.beta.tools import (
     ToolUseBlockParam,
     ToolsBetaContentBlock,
 )
+from anthropic.types.image_block_param import Source
 
 from ..exceptions import NonSerializableOutputError
 
@@ -76,6 +85,26 @@ class AnthropicTool(Protocol):
 
 
 @dataclass
+class TextToolOutput:
+    """The text output of a tool."""
+
+    content: str
+    is_error: bool = False
+    type: Literal["text"] = "text"
+
+
+@dataclass
+class ImageToolOutput:
+    """The image output of a tool."""
+
+    source: Source
+    type: Literal["image"] = "image"
+
+
+ToolOutput = TextToolOutput | ImageToolOutput
+
+
+@dataclass
 class RawToolResult:
     """The raw result of an Anthropic Tool.
 
@@ -134,18 +163,18 @@ class ToolResult:
 
     use_id: str
     name: str
-    raw_result: RawToolResult | None
+    raw_result: RawToolResult
     interpret_return_as_response: bool = False
     response_role: Literal["user", "assistant"] = "user"
 
     @property
-    def content(self) -> str | None:
+    def content(self) -> str:
         """Get the content of the Tool Result.
 
         Returns:
             The content of the Tool Result, or None if there is no raw result.
         """
-        return self.raw_result.serialized if self.raw_result else None
+        return self.raw_result.serialized
 
     @property
     def blocks(
@@ -161,14 +190,28 @@ class ToolResult:
         ]
         | None
     ):
-        """Get the content blocks of the Tool Result. Only meaningful for tools that
-        have interpret_return_as_response set to True. An example use case is a tool
-        that returns image content blocks.
+        """Get the content blocks of the Tool Result. Only meaningful for tools
+        that have interpret_return_as_response set to True. An example use case
+        is a tool that returns image content blocks.
 
         Returns:
-            The content blocks of the Tool Result, or None if there is no raw result.
+            The content blocks of the Tool Result,
+                or None if there is no raw result.
         """
-        return None if self.raw_result is None else self.raw_result.as_content
+        result = self.raw_result.as_content
+        if self._is_tool_output(result):
+            return [
+                ToolResultBlockParam(
+                    type="tool_result",
+                    tool_use_id=self.use_id,
+                    content=[{"type": "text", "text": block.content}],
+                    is_error=block.is_error,
+                )
+                if block.type == "text"
+                else ImageBlockParam(type="image", source=block.source)
+                for block in result
+            ]
+        return result
 
     @property
     def result(self) -> Any | None:
@@ -180,3 +223,17 @@ class ToolResult:
         if self.raw_result:
             return self.raw_result.result
         return None
+
+    def _is_tool_output(self, result: Any) -> TypeGuard[list[ToolOutput]]:
+        """Check if the result is a list of ToolOutput objects.
+
+        Args:
+            result: The result to check.
+
+        Returns:
+            True if the result is a list of ToolOutput objects,
+                False otherwise.
+        """
+        return isinstance(result, list) and all(
+            isinstance(item, (TextToolOutput, ImageToolOutput)) for item in result
+        )
