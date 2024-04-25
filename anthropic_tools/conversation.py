@@ -242,7 +242,10 @@ class Conversation:
         for block in message["content"]:
             if isinstance(block, str):
                 continue
-            if (block["type"] if isinstance(block, dict) else block.type) == "tool_use":
+            if (block["type"] if isinstance(block, dict) else block.type) in [
+                "tool_use",
+                "tool_result",
+            ]:
                 return True
         return False
 
